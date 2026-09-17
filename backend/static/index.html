@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Placement Prep Report Generator</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f8;
+    --panel: #ffffff;
+    --border: #dcdde1;
+    --text: #1a1a1a;
+    --muted: #6b6b70;
+    --accent: #2f5fd6;
+    --accent-hover: #24479e;
+    --error-bg: #fdecea;
+    --error-border: #f5b8b1;
+    --error-text: #8a1f11;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171a;
+      --panel: #1f2023;
+      --border: #34353a;
+      --text: #eaeaec;
+      --muted: #9a9aa2;
+      --accent: #6d8dff;
+      --accent-hover: #8ba3ff;
+      --error-bg: #3a1c1a;
+      --error-border: #6b2c26;
+      --error-text: #ff9f92;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 32px 16px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 4px; }
+  p.sub { color: var(--muted); margin-top: 0; margin-bottom: 24px; }
+  form {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    display: grid;
+    gap: 16px;
+  }
+  label { font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 6px; }
+  input[type=text], textarea, input[type=file] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { background: var(--accent-hover); }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  #status { margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
+  #error {
+    display: none;
+    margin-top: 16px;
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    color: var(--error-text);
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  #result { margin-top: 24px; display: none; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 { margin-top: 0; font-size: 1.05rem; }
+  .card pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: inherit;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+  details summary { cursor: pointer; font-size: 0.85rem; color: var(--muted); }
+  .meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Placement Prep Report Generator</h1>
+  <p class="sub">Upload a resume and name the company. Add a role for a tailored dossier, or leave it blank for a general company-fit report with topics to prepare.</p>
+
+  <form id="reportForm">
+    <div class="row">
+      <div>
+        <label for="company">Company</label>
+        <input type="text" id="company" name="company" required placeholder="e.g. Google" />
+      </div>
+      <div>
+        <label for="role">Role (optional)</label>
+        <input type="text" id="role" name="role" placeholder="Leave blank for general prep" />
+      </div>
+    </div>
+    <div>
+      <label for="jd_text">Job description (optional)</label>
+      <textarea id="jd_text" name="jd_text" placeholder="Paste the JD text here if you have it"></textarea>
+    </div>
+    <div>
+      <label for="resume">Resume (PDF)</label>
+      <input type="file" id="resume" name="resume" accept="application/pdf" required />
+    </div>
+    <button type="submit" id="submitBtn">Generate Report</button>
+    <div id="status"></div>
+  </form>
+
+  <div id="error"></div>
+
+  <div id="result">
+    <div class="card">
+      <h2>Prep Dossier</h2>
+      <div class="meta" id="revisionMeta"></div>
+      <pre id="finalReport"></pre>
+    </div>
+    <div class="card">
+      <details>
+        <summary>Company research (raw)</summary>
+        <pre id="companyResearch"></pre>
+      </details>
+    </div>
+    <div class="card">
+      <details>
+        <summary>Role-fit research (raw)</summary>
+        <pre id="roleFitResearch"></pre>
+      </details>
+    </div>
+  </div>
+</div>
+
+<script>
+const form = document.getElementById("reportForm");
+const submitBtn = document.getElementById("submitBtn");
+const statusEl = document.getElementById("status");
+const errorEl = document.getElementById("error");
+const resultEl = document.getElementById("result");
+
+function parseSseEvent(raw) {
+  let event = "message";
+  const dataLines = [];
+  for (const line of raw.split("\n")) {
+    if (line.startsWith("event:")) event = line.slice(6).trim();
+    else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+  }
+  if (dataLines.length === 0) return null;
+  try {
+    return { event, data: JSON.parse(dataLines.join("\n")) };
+  } catch {
+    return null;
+  }
+}
+
+function renderResult(data) {
+  document.getElementById("finalReport").textContent = data.final_report;
+  document.getElementById("revisionMeta").textContent = `Revisions: ${data.revision_count}`;
+  document.getElementById("companyResearch").textContent = data.company_research;
+  document.getElementById("roleFitResearch").textContent = data.role_fit_research;
+  resultEl.style.display = "block";
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  errorEl.style.display = "none";
+  resultEl.style.display = "none";
+  submitBtn.disabled = true;
+  statusEl.textContent = "Starting...";
+
+  const formData = new FormData(form);
+
+  try {
+    const resp = await fetch("/generate-report", { method: "POST", body: formData });
+
+    if (!resp.ok || !resp.body) {
+      let detail;
+      try {
+        const body = await resp.json();
+        detail = body.traceback
+          ? `${body.error}: ${body.message}\n\n${body.traceback}`
+          : JSON.stringify(body, null, 2);
+      } catch {
+        detail = await resp.text();
+      }
+      throw new Error(`HTTP ${resp.status}\n${detail}`);
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let gotResult = false;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let sepIndex;
+      while ((sepIndex = buffer.indexOf("\n\n")) !== -1) {
+        const rawEvent = buffer.slice(0, sepIndex);
+        buffer = buffer.slice(sepIndex + 2);
+        const evt = parseSseEvent(rawEvent);
+        if (!evt) continue;
+
+        if (evt.event === "status") {
+          statusEl.textContent = evt.data.label;
+        } else if (evt.event === "result") {
+          gotResult = true;
+          renderResult(evt.data);
+          statusEl.textContent = "Done.";
+        } else if (evt.event === "error") {
+          const detail = evt.data.traceback
+            ? `${evt.data.error}: ${evt.data.message}\n\n${evt.data.traceback}`
+            : (evt.data.message || JSON.stringify(evt.data));
+          throw new Error(detail);
+        }
+      }
+    }
+
+    if (!gotResult) {
+      throw new Error("Stream ended without a result.");
+    }
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.style.display = "block";
+    statusEl.textContent = "";
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

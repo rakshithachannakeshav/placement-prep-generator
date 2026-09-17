@@ -1,0 +1,9 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+langgraph==1.2.11
+groq==1.7.0
+scikit-learn==1.6.1
+pypdf==6.19.0
+python-dotenv==1.1.1
+ddgs==9.16.0
+python-multipart==0.0.9
