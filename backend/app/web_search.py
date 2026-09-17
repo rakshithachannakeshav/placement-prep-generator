@@ -7,7 +7,6 @@ issues a couple of searches per report run, which stays well within that.
 import logging
 
 from ddgs import DDGS
-from ddgs.exceptions import DDGSException
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -15,15 +14,18 @@ SEARCH_TIMEOUT_SECONDS = 8
 
 
 def search(query: str, max_results: int = 5) -> list[dict]:
-    """Returns a list of {title, href, body} dicts — or [] if every search
-    backend fails (network issues, all backends rate-limited/blocked, etc.).
+    """Returns a list of {title, href, body} dicts — or [] if search fails.
     Company research is a nice-to-have; it shouldn't take the whole report
-    down when a free, best-effort search API has a bad day."""
+    down when a free, best-effort search API has a bad day. Deliberately
+    catches broadly: ddgs wraps most backend failures in DDGSException, but
+    some (e.g. httpx's own TimeoutException — a different class from ddgs's
+    identically-named one) slip through unwrapped, and the point of this
+    function is that no search-layer failure should ever propagate."""
     try:
         with DDGS(timeout=SEARCH_TIMEOUT_SECONDS) as ddgs:
             return list(ddgs.text(query, max_results=max_results))
-    except DDGSException as exc:
-        logger.warning("Web search failed for %r: %s", query, exc)
+    except Exception as exc:
+        logger.warning("Web search failed for %r: %s: %s", query, type(exc).__name__, exc)
         return []
 
 
