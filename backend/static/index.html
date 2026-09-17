@@ -4,169 +4,480 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Placement Prep Report Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/18.0.13/lib/marked.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.4.15/purify.min.js"></script>
 <style>
   :root {
     color-scheme: light dark;
-    --bg: #f7f7f8;
-    --panel: #ffffff;
-    --border: #dcdde1;
-    --text: #1a1a1a;
-    --muted: #6b6b70;
-    --accent: #2f5fd6;
-    --accent-hover: #24479e;
-    --error-bg: #fdecea;
-    --error-border: #f5b8b1;
-    --error-text: #8a1f11;
+    --paper: #ECEEF0;
+    --panel: #FFFFFF;
+    --ink: #16232E;
+    --ink-soft: #51606B;
+    --ink-faint: #8B98A2;
+    --line: #D8DEE2;
+    --accent: #B8801E;
+    --accent-ink: #16232E;
+    --accent-soft: #F3E4C4;
+    --good: #3F7A5C;
+    --good-soft: #DDEEE4;
+    --bad: #B4432F;
+    --bad-soft: #F6DED8;
+    --shadow: 0 1px 2px rgba(22,35,46,.06), 0 8px 24px rgba(22,35,46,.06);
   }
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #16171a;
-      --panel: #1f2023;
-      --border: #34353a;
-      --text: #eaeaec;
-      --muted: #9a9aa2;
-      --accent: #6d8dff;
-      --accent-hover: #8ba3ff;
-      --error-bg: #3a1c1a;
-      --error-border: #6b2c26;
-      --error-text: #ff9f92;
+    :root:not([data-theme="light"]) {
+      --paper: #121A22;
+      --panel: #1B2630;
+      --ink: #E9ECEE;
+      --ink-soft: #9FB0BC;
+      --ink-faint: #64747F;
+      --line: #2D3B45;
+      --accent: #E0A83E;
+      --accent-ink: #16232E;
+      --accent-soft: #3A2E14;
+      --good: #6FBE95;
+      --good-soft: #1E3229;
+      --bad: #E1705C;
+      --bad-soft: #3A2420;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
     }
   }
+  :root[data-theme="dark"] {
+    --paper: #121A22;
+    --panel: #1B2630;
+    --ink: #E9ECEE;
+    --ink-soft: #9FB0BC;
+    --ink-faint: #64747F;
+    --line: #2D3B45;
+    --accent: #E0A83E;
+    --accent-ink: #16232E;
+    --accent-soft: #3A2E14;
+    --good: #6FBE95;
+    --good-soft: #1E3229;
+    --bad: #E1705C;
+    --bad-soft: #3A2420;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    padding: 32px 16px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Public Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 40px 20px 80px;
   }
-  .wrap { max-width: 760px; margin: 0 auto; }
-  h1 { font-size: 1.5rem; margin-bottom: 4px; }
-  p.sub { color: var(--muted); margin-top: 0; margin-bottom: 24px; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+
+  .eyebrow {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-size: clamp(1.7rem, 1.35rem + 1.6vw, 2.4rem);
+    line-height: 1.12;
+    text-wrap: balance;
+    margin: 0 0 10px;
+  }
+  p.sub {
+    color: var(--ink-soft);
+    font-size: 0.98rem;
+    line-height: 1.55;
+    max-width: 56ch;
+    margin: 0 0 34px;
+  }
+
   form {
     background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 26px;
     display: grid;
-    gap: 16px;
+    gap: 20px;
   }
-  label { font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 6px; }
-  input[type=text], textarea, input[type=file] {
+  .field label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: 7px;
+  }
+  .field label .hint {
+    font-weight: 400;
+    color: var(--ink-faint);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  input[type=text], textarea {
     width: 100%;
-    padding: 10px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg);
-    color: var(--text);
+    padding: 11px 13px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--paper);
+    color: var(--ink);
     font-size: 0.95rem;
     font-family: inherit;
+    transition: border-color .15s ease;
   }
-  textarea { min-height: 90px; resize: vertical; }
+  input[type=text]:focus, textarea:focus, input[type=file]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: var(--accent);
+  }
+  textarea { min-height: 84px; resize: vertical; line-height: 1.5; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
-  button {
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 12px 16px;
-    font-size: 1rem;
-    font-weight: 600;
+
+  .dropzone {
+    border: 1.5px dashed var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     cursor: pointer;
+    background: var(--paper);
+    transition: border-color .15s ease, background .15s ease;
   }
-  button:hover { background: var(--accent-hover); }
-  button:disabled { opacity: 0.6; cursor: not-allowed; }
-  #status { margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
+  .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--accent-soft); }
+  .dropzone input[type=file] { display: none; }
+  .dropzone .icon {
+    width: 34px; height: 34px; flex: none;
+    border-radius: 8px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
+  .dropzone .text { font-size: 0.88rem; color: var(--ink-soft); line-height: 1.4; }
+  .dropzone .text strong { color: var(--ink); font-weight: 600; }
+
+  button[type=submit] {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 8px;
+    padding: 13px 18px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: "Public Sans", sans-serif;
+    cursor: pointer;
+    transition: opacity .15s ease, transform .1s ease;
+  }
+  button[type=submit]:hover:not(:disabled) { opacity: 0.88; }
+  button[type=submit]:active:not(:disabled) { transform: scale(0.99); }
+  button[type=submit]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Progress tracker */
+  #progress {
+    display: none;
+    margin-top: 28px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+  }
+  .steps { display: flex; align-items: flex-start; gap: 4px; }
+  .step { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; }
+  .step .dot {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid var(--line);
+    background: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.7rem; font-weight: 600;
+    color: var(--ink-faint);
+    z-index: 1;
+    transition: all .2s ease;
+  }
+  .step .bar {
+    position: absolute;
+    top: 13px; left: -50%; width: 100%; height: 2px;
+    background: var(--line);
+    z-index: 0;
+  }
+  .step:first-child .bar { display: none; }
+  .step .label {
+    margin-top: 9px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--ink-faint);
+    line-height: 1.3;
+  }
+  .step.active .dot { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+  .step.active .label { color: var(--ink); }
+  .step.done .dot { border-color: var(--good); background: var(--good); color: var(--good-soft); }
+  .step.done .bar { background: var(--good); }
+  .step.done .label { color: var(--ink-soft); }
+  .step.active .dot { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent); }
+    50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }
+  }
+  @media (prefers-reduced-motion: reduce) { .step.active .dot { animation: none; } }
+
+  #statusLine {
+    margin-top: 16px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+
   #error {
     display: none;
-    margin-top: 16px;
-    background: var(--error-bg);
-    border: 1px solid var(--error-border);
-    color: var(--error-text);
-    border-radius: 8px;
-    padding: 14px;
-    font-size: 0.85rem;
+    margin-top: 20px;
+    background: var(--bad-soft);
+    border: 1px solid color-mix(in srgb, var(--bad) 45%, var(--line));
+    color: var(--bad);
+    border-radius: 10px;
+    padding: 16px 18px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.82rem;
     white-space: pre-wrap;
     word-break: break-word;
+    overflow-x: auto;
   }
-  #result { margin-top: 24px; display: none; }
-  .card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px;
+
+  #result { margin-top: 32px; display: none; }
+  .meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-bottom: 16px;
   }
-  .card h2 { margin-top: 0; font-size: 1.05rem; }
-  .card pre {
+  .chip {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 5px 12px;
+  }
+  .chip.revisions { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+
+  .doc-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 32px clamp(20px, 5vw, 44px);
+    margin-bottom: 18px;
+  }
+  .report-body {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 1.03rem;
+    line-height: 1.68;
+    color: var(--ink);
+    max-width: 68ch;
+  }
+  .report-body h1, .report-body h2, .report-body h3 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 600;
+    line-height: 1.25;
+    text-wrap: balance;
+    margin: 1.6em 0 0.5em;
+  }
+  .report-body h1:first-child, .report-body h2:first-child, .report-body h3:first-child { margin-top: 0; }
+  .report-body h1 { font-size: 1.5rem; }
+  .report-body h2 { font-size: 1.22rem; }
+  .report-body h3 { font-size: 1.06rem; color: var(--accent); }
+  .report-body p { margin: 0.9em 0; }
+  .report-body strong { color: var(--ink); font-weight: 600; }
+  .report-body ul, .report-body ol { padding-left: 1.3em; margin: 0.9em 0; }
+  .report-body li { margin: 0.4em 0; }
+  .report-body hr { border: none; border-top: 1px solid var(--line); margin: 1.8em 0; }
+  .report-body table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: "Public Sans", sans-serif;
+    font-size: 0.88rem;
+    margin: 1em 0 1.4em;
+  }
+  .report-body th, .report-body td {
+    border: 1px solid var(--line);
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .report-body th { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+  .report-body-scroll { overflow-x: auto; }
+
+  details.panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 4px 20px;
+    margin-bottom: 12px;
+  }
+  details.panel summary {
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    padding: 14px 0;
+    list-style: none;
+  }
+  details.panel summary::-webkit-details-marker { display: none; }
+  details.panel summary::before { content: "› "; color: var(--accent); font-weight: 700; }
+  details.panel[open] summary::before { content: "⌄ "; }
+  details.panel pre {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
     white-space: pre-wrap;
     word-break: break-word;
-    font-family: inherit;
-    font-size: 0.9rem;
-    margin: 0;
+    margin: 0 0 18px;
   }
-  details summary { cursor: pointer; font-size: 0.85rem; color: var(--muted); }
-  .meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
 </style>
 </head>
 <body>
 <div class="wrap">
+  <p class="eyebrow">Interview prep, grounded in evidence</p>
   <h1>Placement Prep Report Generator</h1>
   <p class="sub">Upload a resume and name the company. Add a role for a tailored dossier, or leave it blank for a general company-fit report with topics to prepare.</p>
 
   <form id="reportForm">
     <div class="row">
-      <div>
+      <div class="field">
         <label for="company">Company</label>
         <input type="text" id="company" name="company" required placeholder="e.g. Google" />
       </div>
-      <div>
-        <label for="role">Role (optional)</label>
+      <div class="field">
+        <label for="role">Role <span class="hint">(optional)</span></label>
         <input type="text" id="role" name="role" placeholder="Leave blank for general prep" />
       </div>
     </div>
-    <div>
-      <label for="jd_text">Job description (optional)</label>
+    <div class="field">
+      <label for="jd_text">Job description <span class="hint">(optional)</span></label>
       <textarea id="jd_text" name="jd_text" placeholder="Paste the JD text here if you have it"></textarea>
     </div>
-    <div>
-      <label for="resume">Resume (PDF)</label>
-      <input type="file" id="resume" name="resume" accept="application/pdf" required />
+    <div class="field">
+      <label for="resume">Resume</label>
+      <label class="dropzone" id="dropzone" for="resume">
+        <span class="icon">PDF</span>
+        <span class="text" id="dropzoneText"><strong>Choose a file</strong> or drag it here</span>
+        <input type="file" id="resume" name="resume" accept="application/pdf" required />
+      </label>
     </div>
     <button type="submit" id="submitBtn">Generate Report</button>
-    <div id="status"></div>
   </form>
+
+  <div id="progress">
+    <div class="steps" id="steps"></div>
+    <div id="statusLine"></div>
+  </div>
 
   <div id="error"></div>
 
   <div id="result">
-    <div class="card">
-      <h2>Prep Dossier</h2>
-      <div class="meta" id="revisionMeta"></div>
-      <pre id="finalReport"></pre>
+    <div class="meta-strip" id="metaStrip"></div>
+    <div class="doc-card">
+      <div class="report-body report-body-scroll" id="finalReport"></div>
     </div>
-    <div class="card">
-      <details>
-        <summary>Company research (raw)</summary>
-        <pre id="companyResearch"></pre>
-      </details>
-    </div>
-    <div class="card">
-      <details>
-        <summary>Role-fit research (raw)</summary>
-        <pre id="roleFitResearch"></pre>
-      </details>
-    </div>
+    <details class="panel">
+      <summary>Company research (raw)</summary>
+      <pre id="companyResearch"></pre>
+    </details>
+    <details class="panel">
+      <summary>Role-fit research (raw)</summary>
+      <pre id="roleFitResearch"></pre>
+    </details>
   </div>
 </div>
 
 <script>
+const STEP_DEFS = [
+  { key: "research", label: "Research" },
+  { key: "draft", label: "Draft" },
+  { key: "fact_check", label: "Fact-check" },
+  { key: "finalize", label: "Finalize" },
+];
+const NODE_TO_STEP = {
+  research_company: "research",
+  research_role_fit: "research",
+  draft: "draft",
+  fact_check: "fact_check",
+  finalize: "finalize",
+};
+
+const stepsEl = document.getElementById("steps");
+STEP_DEFS.forEach((s, i) => {
+  const el = document.createElement("div");
+  el.className = "step";
+  el.id = `step-${s.key}`;
+  el.innerHTML = `<div class="bar"></div><div class="dot">${i + 1}</div><div class="label">${s.label}</div>`;
+  stepsEl.appendChild(el);
+});
+
+function setStepState(key, state) {
+  const el = document.getElementById(`step-${key}`);
+  if (!el) return;
+  el.classList.remove("active", "done");
+  if (state) el.classList.add(state);
+}
+
+function resetSteps() {
+  STEP_DEFS.forEach(s => setStepState(s.key, null));
+}
+
+function advanceTo(stepKey) {
+  const idx = STEP_DEFS.findIndex(s => s.key === stepKey);
+  STEP_DEFS.forEach((s, i) => {
+    if (i < idx) setStepState(s.key, "done");
+    else if (i === idx) setStepState(s.key, "active");
+    else setStepState(s.key, null);
+  });
+}
+
 const form = document.getElementById("reportForm");
 const submitBtn = document.getElementById("submitBtn");
-const statusEl = document.getElementById("status");
+const progressEl = document.getElementById("progress");
+const statusLine = document.getElementById("statusLine");
 const errorEl = document.getElementById("error");
 const resultEl = document.getElementById("result");
+const resumeInput = document.getElementById("resume");
+const dropzone = document.getElementById("dropzone");
+const dropzoneText = document.getElementById("dropzoneText");
+
+resumeInput.addEventListener("change", () => {
+  if (resumeInput.files[0]) {
+    dropzoneText.innerHTML = `<strong>${resumeInput.files[0].name}</strong>`;
+  }
+});
+["dragover", "dragleave", "drop"].forEach(evt => {
+  dropzone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    dropzone.classList.toggle("drag", evt === "dragover");
+  });
+});
+dropzone.addEventListener("drop", (e) => {
+  if (e.dataTransfer.files[0]) {
+    resumeInput.files = e.dataTransfer.files;
+    dropzoneText.innerHTML = `<strong>${e.dataTransfer.files[0].name}</strong>`;
+  }
+});
 
 function parseSseEvent(raw) {
   let event = "message";
@@ -183,11 +494,26 @@ function parseSseEvent(raw) {
   }
 }
 
-function renderResult(data) {
-  document.getElementById("finalReport").textContent = data.final_report;
-  document.getElementById("revisionMeta").textContent = `Revisions: ${data.revision_count}`;
-  document.getElementById("companyResearch").textContent = data.company_research;
-  document.getElementById("roleFitResearch").textContent = data.role_fit_research;
+function renderResult(data, company, role) {
+  const html = DOMPurify.sanitize(marked.parse(data.final_report || ""));
+  document.getElementById("finalReport").innerHTML = html;
+
+  const metaStrip = document.getElementById("metaStrip");
+  metaStrip.innerHTML = "";
+  const chips = [
+    company,
+    role ? role : "General fit",
+    `${data.revision_count} revision${data.revision_count === 1 ? "" : "s"}`,
+  ];
+  chips.forEach((text, i) => {
+    const span = document.createElement("span");
+    span.className = "chip" + (i === 2 ? " revisions" : "");
+    span.textContent = text;
+    metaStrip.appendChild(span);
+  });
+
+  document.getElementById("companyResearch").textContent = data.company_research || "";
+  document.getElementById("roleFitResearch").textContent = data.role_fit_research || "";
   resultEl.style.display = "block";
 }
 
@@ -195,9 +521,13 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   errorEl.style.display = "none";
   resultEl.style.display = "none";
+  progressEl.style.display = "block";
   submitBtn.disabled = true;
-  statusEl.textContent = "Starting...";
+  resetSteps();
+  statusLine.textContent = "Starting...";
 
+  const company = document.getElementById("company").value;
+  const role = document.getElementById("role").value.trim();
   const formData = new FormData(form);
 
   try {
@@ -234,11 +564,14 @@ form.addEventListener("submit", async (e) => {
         if (!evt) continue;
 
         if (evt.event === "status") {
-          statusEl.textContent = evt.data.label;
+          const stepKey = NODE_TO_STEP[evt.data.node] || "draft";
+          advanceTo(stepKey);
+          statusLine.textContent = evt.data.label;
         } else if (evt.event === "result") {
           gotResult = true;
-          renderResult(evt.data);
-          statusEl.textContent = "Done.";
+          STEP_DEFS.forEach(s => setStepState(s.key, "done"));
+          statusLine.textContent = "Done.";
+          renderResult(evt.data, company, role);
         } else if (evt.event === "error") {
           const detail = evt.data.traceback
             ? `${evt.data.error}: ${evt.data.message}\n\n${evt.data.traceback}`
@@ -254,7 +587,7 @@ form.addEventListener("submit", async (e) => {
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.style.display = "block";
-    statusEl.textContent = "";
+    statusLine.textContent = "";
   } finally {
     submitBtn.disabled = false;
   }
